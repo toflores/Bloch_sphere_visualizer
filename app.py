@@ -4,13 +4,11 @@ import streamlit as st
 import quantum_engine as qe
 import bloch_renderer as br
 
-# --- Page Configuration ---
 st.set_page_config(
     page_title="Bloch Sphere Visualizer",
     layout="wide"
 )
 
-# --- Session State Initialization ---
 if "rho" not in st.session_state:
     st.session_state.rho = qe.psi_to_density(qe.state_0())
 
@@ -19,7 +17,6 @@ if "trajectory" not in st.session_state:
     st.session_state.trajectory = [(rx, ry, rz)]
 
 
-# --- Helper Callbacks ---
 def apply_discrete_gate(U: np.ndarray):
     st.session_state.rho = qe.apply_gate(st.session_state.rho, U)
     rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
@@ -46,11 +43,9 @@ def reset_state(initial_state_func):
     st.session_state.trajectory = [(rx, ry, rz)]
 
 
-# --- SIDEBAR: Control Panel ---
 with st.sidebar:
     st.header("Control Panel")
 
-    # 1. Reset
     st.markdown("**1. Initialize State**")
     r_cols = st.columns(4)
     if r_cols[0].button("|0⟩", use_container_width=True):
@@ -68,7 +63,6 @@ with st.sidebar:
 
     st.divider()
 
-    # 2. Discrete Gates
     st.markdown("**2. Discrete Unitary Gates**")
     g_cols = st.columns(6)
     if g_cols[0].button("H", use_container_width=True):
@@ -120,23 +114,18 @@ with st.sidebar:
 st.title("Single-Qubit State Visualization")
 st.markdown("Interactive simulation of single-qubit dynamics and unitary transformations.")
 
-# Extract current coordinates and purity
 rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
 purity = qe.get_purity(st.session_state.rho)
 
-# Create a side-by-side layout: Sphere gets ~70% width, Diagnostics get ~30%
 vis_col, diag_col = st.columns([2.2, 1])
 
 with vis_col:
-    # Render Plotly Figure
     fig = br.create_bloch_sphere(rx, ry, rz, trajectory=st.session_state.trajectory)
-    # Added unique key here to prevent duplicate ID errors
     st.plotly_chart(fig, use_container_width=True, key="bloch_sphere_plot")
 
 with diag_col:
     st.subheader("State Diagnostics")
 
-    # Display metrics vertically instead of horizontally
     st.metric("r_x (X-axis)", f"{rx:.3f}")
     st.metric("r_y (Y-axis)", f"{ry:.3f}")
     st.metric("r_z (Z-axis)", f"{rz:.3f}")
@@ -146,7 +135,7 @@ with diag_col:
 
     st.markdown("**Density Matrix $\\rho$:**")
 
-    # Format complex numbers neatly
+
     rho = st.session_state.rho
     r00, r01 = np.round(rho[0, 0], 3), np.round(rho[0, 1], 3)
     r10, r11 = np.round(rho[1, 0], 3), np.round(rho[1, 1], 3)
@@ -160,7 +149,6 @@ with diag_col:
         return f"{real_part} {sign} {abs(c.imag):.3f}i"
 
 
-    # Use string concatenation with raw strings (r"") to prevent LaTeX escape bugs
     latex_matrix = (
             r"\begin{bmatrix}" + "\n" +
             f"{fmt_c(r00)} & {fmt_c(r01)} \\\\" + "\n" +
