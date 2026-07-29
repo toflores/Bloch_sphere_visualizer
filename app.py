@@ -3,6 +3,9 @@ import numpy as np
 import streamlit as st
 import quantum_engine as qe
 import bloch_renderer as br
+from collections import deque
+
+TRAIL_LENGTH = 150  # fixed size -> array length never changes -> no WebGL rebuild
 
 st.set_page_config(
     page_title="Bloch Sphere Visualizer",
@@ -14,7 +17,7 @@ if "rho" not in st.session_state:
     st.session_state.rho = qe.get_initial_state()  # Default |0>
 if "trajectory" not in st.session_state:
     rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
-    st.session_state.trajectory = [(rx, ry, rz)]
+    st.session_state.trajectory = deque([(rx, ry, rz)] * TRAIL_LENGTH, maxlen=TRAIL_LENGTH)
 if "is_playing" not in st.session_state:
     st.session_state.is_playing = False
 
@@ -26,7 +29,7 @@ with st.sidebar:
         st.session_state.is_playing = False
         st.session_state.rho = qe.get_initial_state()
         rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
-        st.session_state.trajectory = [(rx, ry, rz)]
+        st.session_state.trajectory = deque([(rx, ry, rz)] * TRAIL_LENGTH, maxlen=TRAIL_LENGTH)
         st.rerun()
 
     st.divider()
