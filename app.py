@@ -81,71 +81,89 @@ with st.sidebar:
         st.rerun()
 
 
+# 4. Main Display Setup
 st.title("Interactive Single-Qubit Visualizer")
 
-app_container = st.empty()
+vis_col, diag_col = st.columns([2.2, 1])
 
-def render_current_frame():
-    """Renders the 3D Bloch sphere and diagnostics strictly into the placeholder."""
-    with app_container.container():
-        vis_col, diag_col = st.columns([2.2, 1])
-
-        rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
-        purity = qe.get_purity(st.session_state.rho)
-
-        with vis_col:
-            fig = br.create_bloch_sphere(
-                rx, ry, rz, trajectory=st.session_state.trajectory
-            )
-            # A dynamic key prevents Plotly from duplicating or dropping charts during animation
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-                key=f"bloch_chart_{len(st.session_state.trajectory)}"
-            )
-
-        with diag_col:
-            st.subheader("State Diagnostics")
-            st.metric("r_x (X-axis)", f"{rx:.3f}")
-            st.metric("r_y (Y-axis)", f"{ry:.3f}")
-            st.metric("r_z (Z-axis)", f"{rz:.3f}")
-            st.metric("Purity P", f"{purity:.4f}")
-
-            # LaTeX Density Matrix Formatting
-            r00, r01 = np.round(st.session_state.rho[0, 0], 3), np.round(st.session_state.rho[0, 1], 3)
-            r10, r11 = np.round(st.session_state.rho[1, 0], 3), np.round(st.session_state.rho[1, 1], 3)
-
-            def fmt_c(c: complex) -> str:
-                real_part = f"{c.real:.3f}"
-                if c.imag == 0:
-                    return real_part
-                sign = "+" if c.imag >= 0 else "-"
-                return f"{real_part} {sign} {abs(c.imag):.3f}i"
-
-            latex_matrix = (
-                r"\begin{bmatrix}" + "\n" +
-                f"{fmt_c(r00)} & {fmt_c(r01)} \\\\" + "\n" +
-                f"{fmt_c(r10)} & {fmt_c(r11)}" + "\n" +
-                r"\end{bmatrix}"
-            )
-            st.latex(r"\rho = " + latex_matrix)
+# Create dedicated placeholders for the chart and text diagnostics
+with vis_col:
+    chart_placeholder = st.empty()
+with diag_col:
+    diag_placeholder = st.empty()
 
 
+def render_diagnostics(rx, ry, rz, purity):
+    """Updates only the text/LaTeX metrics in the right column."""
+    with diag_placeholder.container():
+        st.subheader("State Diagnostics")
+        st.metric("r_x (X-axis)", f"{rx:.3f}")
+        st.metric("r_y (Y-axis)", f"{ry:.3f}")
+        st.metric("r_z (Z-axis)", f"{rz:.3f}")
+        st.metric("Purity P", f"{purity:.4f}")
+
+        r00, r01 = np.round(st.session_state.rho[0, 0], 3), np.round(
+            st.session_state.rho[0, 1], 3
+        )
+        r10, r11 = np.round(st.session_state.rho[1, 0], 3), np.round(
+            st.session_state.rho[1, 1], 3
+        )
+
+        def fmt_c(c: complex) -> str:
+            real_part = f"{c.real:.3f}"
+            if c.imag == 0:
+                return real_part
+            sign = "+" if c.imag >= 0 else "-"
+            return f"{real_part} {sign} {abs(c.imag):.3f}i"
+
+        latex_matrix = (
+            r"\begin{bmatrix}"
+            + "\n"
+            + f"{fmt_c(r00)} & {fmt_c(r01)} \\\\"
+            + "\n"
+            + f"{fmt_c(r10)} & {fmt_c(r11)}"
+            + "\n"
+            + r"\end{bmatrix}"
+        )
+        st.latex(r"\rho = " + latex_matrix)
+
+
+def render_sphere(rx, ry, rz):
+    """Updates the Plotly chart smoothly without dropping the DOM element."""
+    fig = br.create_bloch_sphere(
+        rx, ry, rz, trajectory=st.session_state.trajectory
+    )
+    # NO key=... argument here! This allows Streamlit to patch the existing figure smoothly.
+    chart_placeholder.plotly_chart(
+        fig, use_container_width=True, config={"displayModeBar": False}
+    )
+
+
+# 5. Animation Driver / Rendering Logic
 if st.session_state.is_playing:
-    # Animate up to 100 frames (~3 seconds) per Play click so browser stays responsive
     for _ in range(100):
         if not st.session_state.is_playing:
             break
 
+        # Advance state by timestep dt
         dt = 0.05
         st.session_state.rho = qe.evolve_hamiltonian(
             st.session_state.rho, omega_x, omega_y, omega_z, dt
         )
 
+        # Update trajectory trail
         rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
         st.session_state.trajectory.append((rx, ry, rz))
 
-        render_current_frame()
-        time.sleep(0.03)
+        # Smoothly update visual frame
+        render_sphere(rx, ry, rz)
+        purity = qe.get_purity(st.session_state.rho)
+        render_diagnostics(rx, ry, rz, purity)
+
+        time.sleep(0.02)
 else:
-    render_current_frame()
+    # Static render when paused/stopped
+    rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
+    purity = qe.get_purity(st.session_state.rho)
+    render_sphere(rx, ry, rz)
+    render_diagnostics(rx, ry, rz, purity)
