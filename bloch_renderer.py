@@ -123,11 +123,12 @@ def create_bloch_sphere(
     # --- 7. Scene Styling & Camera Layout (UPDATED) ---
     fig.update_layout(
         height=600,  # Maximize vertical real estate
+        uirevision='constant',  # Prevents camera reset & DOM thrashing between frames
         scene=dict(
-            aspectmode='data',
-            xaxis=dict(visible=False),
-            yaxis=dict(visible=False),
-            zaxis=dict(visible=False),
+            aspectmode='cube',  # Strict 1:1:1 box prevents jumping (replaces 'data')
+            xaxis=dict(visible=False, range=[-1.1, 1.1]),  # Lock ranges so bounding box is static
+            yaxis=dict(visible=False, range=[-1.1, 1.1]),
+            zaxis=dict(visible=False, range=[-1.1, 1.1]),
             camera=dict(
                 eye=dict(x=1.2, y=1.2, z=1.0)  # Zoomed in for a larger sphere
             )

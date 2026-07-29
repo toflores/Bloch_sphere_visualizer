@@ -146,7 +146,7 @@ if st.session_state.is_playing:
             break
 
         # Advance state by timestep dt
-        dt = 0.05
+        dt = 0.15
         st.session_state.rho = qe.evolve_hamiltonian(
             st.session_state.rho, omega_x, omega_y, omega_z, dt
         )
@@ -160,7 +160,7 @@ if st.session_state.is_playing:
         purity = qe.get_purity(st.session_state.rho)
         render_diagnostics(rx, ry, rz, purity)
 
-        time.sleep(0.02)
+        time.sleep(0.05)
 else:
     # Static render when paused/stopped
     rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
