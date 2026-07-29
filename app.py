@@ -5,11 +5,17 @@ from collections import deque
 import quantum_engine as qe
 import bloch_renderer as br
 
+# --- Configuration & Constants ---
 TRAIL_LENGTH = 150
-FRAME_INTERVAL = 0.05  # seconds between fragment reruns while playing
+FRAME_INTERVAL = 0.05  # 50 ms between fragment refreshes (~20 FPS)
 
-st.set_page_config(page_title="Bloch Sphere Visualizer", layout="wide")
+st.set_page_config(
+    page_title="Bloch Sphere Visualizer",
+    page_icon="⚛️",
+    layout="wide"
+)
 
+# --- 1. Session State Initialization ---
 if "rho" not in st.session_state:
     st.session_state.rho = qe.psi_to_density(qe.state_0())
 if "trajectory" not in st.session_state:
@@ -19,7 +25,9 @@ if "is_playing" not in st.session_state:
     st.session_state.is_playing = False
 
 
+# --- Helper Functions ---
 def reset_state(initial_state_func):
+    """Resets the quantum state and flushes the trajectory trail."""
     st.session_state.is_playing = False
     st.session_state.rho = qe.psi_to_density(initial_state_func())
     rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
@@ -27,12 +35,14 @@ def reset_state(initial_state_func):
 
 
 def apply_discrete_gate(U):
+    """Applies a discrete unitary gate and appends the new position to the trail."""
     st.session_state.is_playing = False
     st.session_state.rho = qe.apply_gate(st.session_state.rho, U)
     rx, ry, rz = qe.density_to_bloch(st.session_state.rho)
     st.session_state.trajectory.append((rx, ry, rz))
 
 
+# --- 2. Sidebar Control Panel ---
 with st.sidebar:
     st.header("Control Panel")
 
@@ -83,12 +93,16 @@ with st.sidebar:
         st.session_state.trajectory = deque([(rx, ry, rz)] * TRAIL_LENGTH, maxlen=TRAIL_LENGTH)
 
 
+# --- 3. Main Display Header ---
 st.title("Single-Qubit State Visualization")
 st.markdown("Interactive simulation of single-qubit dynamics and unitary transformations.")
 
 
+# --- 4. Fragment-Based Animation & Rendering ---
+# Using a dynamic run_every interval allows seamless toggling between animation polling and static display
 @st.fragment(run_every=FRAME_INTERVAL if st.session_state.is_playing else None)
 def render_visualization():
+    # 1. Advance time evolution only if actively playing
     if st.session_state.is_playing:
         st.session_state.rho = qe.evolve_hamiltonian(
             st.session_state.rho,
@@ -104,9 +118,11 @@ def render_visualization():
 
     purity = qe.get_purity(st.session_state.rho)
 
+    # 2. Render 3D Bloch Sphere
     fig = br.create_bloch_sphere(rx, ry, rz, trajectory=st.session_state.trajectory)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
+    # 3. State Diagnostics & Density Matrix Readout
     st.markdown("---")
     st.subheader("State Diagnostics")
     m_col1, m_col2, m_col3, m_col4 = st.columns(4)
@@ -133,4 +149,5 @@ def render_visualization():
     """)
 
 
+# Execute the fragment render loop
 render_visualization()
