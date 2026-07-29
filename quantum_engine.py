@@ -96,3 +96,25 @@ def get_rotation_trajectory(
         trajectory.append(coords)
 
     return trajectory
+
+# now we want to actually evolve the qubit
+
+def get_hamiltonian(omega_x: float, omega_y:float, omega_z:float) -> np.ndarray:
+    return 0.5*(omega_x*pauli_x + omega_y*pauli_y + omega_z*pauli_z)
+
+
+def evolve_hamiltonian(rho_init:np.ndarray, omega_x:float, omega_y:float, omega_z:float, dt:float)->np.ndarray:
+    omega_mag = np.sqrt(omega_x**2 + omega_y**2 + omega_z**2)
+
+    if omega_mag == 0:
+        return rho_init
+
+    nx, ny, nz = omega_x / omega_mag, omega_y / omega_mag, omega_z / omega_mag
+    n_dot_sigma = nx * pauli_x + ny * pauli_y + nz * pauli_z
+
+    theta = omega_mag*dt
+
+    U = np.cos(theta/2.0) * np.eye(2, dtype=complex) -1j *np.sin(theta/2.0)*n_dot_sigma
+
+    return U @ rho_init @U.conj().T
+
