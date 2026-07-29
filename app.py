@@ -84,8 +84,10 @@ with st.sidebar:
     p_col1, p_col2 = st.columns(2)
     if p_col1.button("▶️ Play", use_container_width=True):
         st.session_state.is_playing = True
+        st.rerun()  # <--- Forces the fragment to immediately start auto-polling
     if p_col2.button("⏹️ Stop", use_container_width=True):
         st.session_state.is_playing = False
+        st.rerun()  # <--- Forces the fragment to instantly kill the auto-polling loop
 
     st.divider()
     if st.button("Clear Trajectory Trail", use_container_width=True):
