@@ -39,6 +39,10 @@ def psi_to_density(psi):
     rho = np.outer(psi, np.conj(psi))
     return rho
 
+def get_initial_state() -> np.ndarray:
+    return np.array([[1.0 + 0.0j, 0.0 + 0.0j],
+                     [0.0 + 0.0j, 0.0 + 0.0j]], dtype=complex)
+
 
 def density_to_bloch(rho, decimals:int = 10):
     rx = float(np.round(np.trace(rho @ pauli_x).real, decimals))
